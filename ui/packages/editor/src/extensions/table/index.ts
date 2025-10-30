@@ -1,4 +1,5 @@
 import { BlockActionSeparator, ToolboxItem } from "@/components";
+import { CONVERT_TO_KEY } from "@/components/drag/default-drag";
 import { i18n } from "@/locales";
 import {
   Editor,
@@ -211,7 +212,7 @@ class TableView implements NodeView {
 
 export const TABLE_BUBBLE_MENU_KEY = new PluginKey("tableBubbleMenu");
 
-const Table = TiptapTable.extend<ExtensionOptions & TableOptions>({
+const Table = TiptapTable.extend<ExtensionOptions & Partial<TableOptions>>({
   allowGapCursor: true,
 
   addExtensions() {
@@ -408,52 +409,14 @@ const Table = TiptapTable.extend<ExtensionOptions & TableOptions>({
           ],
         };
       },
-      getDraggable() {
+      getDraggableMenuItems() {
         return {
-          getRenderContainer({ dom }) {
-            let container = dom;
-            while (container && !container.classList.contains("tableWrapper")) {
-              container = container.parentElement as HTMLElement;
+          extendsKey: CONVERT_TO_KEY,
+          visible({ editor }) {
+            if (isActive(editor.state, "table")) {
+              return false;
             }
-            return {
-              el: container,
-              dragDomOffset: {
-                x: 20,
-                y: 20,
-              },
-            };
-          },
-          handleDrop({ view, event, slice, insertPos }) {
-            const { state } = view;
-            const $pos = state.selection.$anchor;
-            for (let d = $pos.depth; d > 0; d--) {
-              const node = $pos.node(d);
-              if (node.type.spec["tableRole"] == "table") {
-                const eventPos = view.posAtCoords({
-                  left: event.clientX,
-                  top: event.clientY,
-                });
-                if (!eventPos) {
-                  return;
-                }
-                if (!slice) {
-                  return;
-                }
-
-                let tr = state.tr;
-                tr = tr.delete($pos.before(d), $pos.after(d));
-                const pos = tr.mapping.map(insertPos);
-                tr = tr.replaceRange(pos, pos, slice).scrollIntoView();
-
-                if (tr) {
-                  view.dispatch(tr);
-                  event.preventDefault();
-                  return true;
-                }
-
-                return false;
-              }
-            }
+            return true;
           },
         };
       },
@@ -591,7 +554,7 @@ const Table = TiptapTable.extend<ExtensionOptions & TableOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const { colgroup, tableWidth, tableMinWidth } = createColGroup(
       node,
-      this.options.cellMinWidth
+      this.options.cellMinWidth ?? 25
     );
 
     const table: DOMOutputSpec = [
@@ -599,11 +562,15 @@ const Table = TiptapTable.extend<ExtensionOptions & TableOptions>({
       { style: "overflow-x: auto; overflow-y: hidden;" },
       [
         "table",
-        mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-          style: tableWidth
-            ? `width: ${tableWidth}`
-            : `minWidth: ${tableMinWidth}`,
-        }),
+        mergeAttributes(
+          this.options.HTMLAttributes ?? {},
+          HTMLAttributes ?? {},
+          {
+            style: tableWidth
+              ? `width: ${tableWidth}`
+              : `minWidth: ${tableMinWidth}`,
+          }
+        ),
         colgroup,
         ["tbody", 0],
       ],

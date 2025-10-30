@@ -12,25 +12,15 @@ import {
 } from "@/tiptap";
 import type { ExtensionOptions } from "@/types";
 import { deleteNode } from "@/utils";
-import TiptapDetails, { type DetailsOptions } from "@tiptap/extension-details";
-import TiptapDetailsContent from "@tiptap/extension-details-content";
-import TiptapDetailsSummary from "@tiptap/extension-details-summary";
+import TiptapDetails, {
+  DetailsContent,
+  DetailsSummary,
+  type DetailsOptions,
+} from "@tiptap/extension-details";
 import { markRaw } from "vue";
 import MdiExpandHorizontal from "~icons/mdi/expand-horizontal";
 
 export const DETAILS_BUBBLE_MENU_KEY = new PluginKey("detailsBubbleMenu");
-
-const getRenderContainer = (node: HTMLElement) => {
-  let container = node;
-  if (container.nodeName === "#text") {
-    container = node.parentElement as HTMLElement;
-  }
-
-  while (container && container.dataset.type !== "details") {
-    container = container.parentElement as HTMLElement;
-  }
-  return container;
-};
 
 const Details = TiptapDetails.extend<
   ExtensionOptions & Partial<DetailsOptions>
@@ -125,19 +115,10 @@ const Details = TiptapDetails.extend<
           ],
         };
       },
-      getDraggable() {
-        return {
-          getRenderContainer({ dom }: { dom: HTMLElement }) {
-            return {
-              el: getRenderContainer(dom),
-            };
-          },
-        };
-      },
     };
   },
   addExtensions() {
-    return [TiptapDetailsSummary, TiptapDetailsContent];
+    return [DetailsSummary, DetailsContent];
   },
 });
 
